@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Лиды</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow" id="monthLabel">Месяц</p>
+          <h1>Лиды</h1>
+        </div>
+        <button class="ghost-button" id="resetTodayButton" type="button">Сбросить день</button>
+      </header>
+
+      <section class="hero" aria-label="Прогресс за сегодня">
+        <div class="hero-copy">
+          <p class="label">Сегодня</p>
+          <div class="big-number">
+            <span id="todayCount">0</span><span>/45</span>
+          </div>
+        </div>
+        <div class="ring" aria-hidden="true">
+          <svg viewBox="0 0 120 120">
+            <circle class="ring-track" cx="60" cy="60" r="50"></circle>
+            <circle class="ring-fill" id="todayRing" cx="60" cy="60" r="50"></circle>
+          </svg>
+          <span id="todayPercent">0%</span>
+        </div>
+      </section>
+
+      <section class="stats" aria-label="Статистика месяца">
+        <article>
+          <span class="stat-value" id="monthCount">0</span>
+          <span class="stat-label">за месяц</span>
+        </article>
+        <article>
+          <span class="stat-value" id="monthLeft">1000</span>
+          <span class="stat-label">осталось</span>
+        </article>
+        <article>
+          <span class="stat-value" id="weekdayAverage">0</span>
+          <span class="stat-label">в среднем</span>
+        </article>
+      </section>
+
+      <section class="panel" aria-label="Кружочки за сегодня">
+        <div class="section-title">
+          <h2>45 касаний</h2>
+          <button class="icon-button" id="fillTodayButton" type="button" aria-label="Закрыть цель дня" title="Закрыть цель дня">45</button>
+        </div>
+        <div class="daily-grid" id="dailyGrid"></div>
+      </section>
+
+      <section class="panel" aria-label="Карта месяца">
+        <div class="section-title">
+          <h2>1000 за месяц</h2>
+          <button class="ghost-button" id="resetMonthButton" type="button">Новый месяц</button>
+        </div>
+        <div class="month-progress">
+          <div id="monthProgressBar"></div>
+        </div>
+        <div class="month-grid" id="monthGrid"></div>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
