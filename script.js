@@ -46,6 +46,7 @@ const now = new Date();
 const todayKey = toDateKey(now);
 const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 const storageKey = `${STORAGE_PREFIX}:${monthKey}`;
+const EMPTY_FUNNEL = { replies: 0, tests: 0, works: 0 };
 
 let state = loadState();
 
@@ -56,8 +57,6 @@ function toDateKey(date) {
     String(date.getDate()).padStart(2, "0"),
   ].join("-");
 }
-
-const EMPTY_FUNNEL = { replies: 0, tests: 0, works: 0 };
 
 function loadState() {
   const raw = localStorage.getItem(storageKey);
