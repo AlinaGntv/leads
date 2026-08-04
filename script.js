@@ -16,6 +16,27 @@ const resetTodayButton = document.querySelector("#resetTodayButton");
 const resetMonthButton = document.querySelector("#resetMonthButton");
 const fillTodayButton = document.querySelector("#fillTodayButton");
 
+const funnelFromTouches = document.querySelector("#funnelFromTouches");
+const funnelValues = {
+  touches: document.querySelector("#funnelTouchesValue"),
+  replies: document.querySelector("#funnelRepliesValue"),
+  tests: document.querySelector("#funnelTestsValue"),
+  works: document.querySelector("#funnelWorksValue"),
+};
+const funnelFills = {
+  touches: document.querySelector("#funnelTouchesFill"),
+  replies: document.querySelector("#funnelRepliesFill"),
+  tests: document.querySelector("#funnelTestsFill"),
+  works: document.querySelector("#funnelWorksFill"),
+};
+const funnelMetas = {
+  touches: document.querySelector("#funnelTouchesMeta"),
+  replies: document.querySelector("#funnelRepliesMeta"),
+  tests: document.querySelector("#funnelTestsMeta"),
+  works: document.querySelector("#funnelWorksMeta"),
+};
+const funnelButtons = document.querySelectorAll(".funnel-button");
+
 const now = new Date();
 const todayKey = toDateKey(now);
 const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -31,18 +52,26 @@ function toDateKey(date) {
   ].join("-");
 }
 
+const EMPTY_FUNNEL = { replies: 0, tests: 0, works: 0 };
+
 function loadState() {
   const raw = localStorage.getItem(storageKey);
 
   if (!raw) {
-    return { days: {} };
+    return { days: {}, funnel: { ...EMPTY_FUNNEL } };
   }
 
   try {
     const parsed = JSON.parse(raw);
-    return parsed && parsed.days ? parsed : { days: {} };
+    if (!parsed || !parsed.days) {
+      return { days: {}, funnel: { ...EMPTY_FUNNEL } };
+    }
+    return {
+      days: parsed.days,
+      funnel: { ...EMPTY_FUNNEL, ...(parsed.funnel || {}) },
+    };
   } catch {
-    return { days: {} };
+    return { days: {}, funnel: { ...EMPTY_FUNNEL } };
   }
 }
 
@@ -62,6 +91,23 @@ function setTodayDone(value) {
 
 function getMonthDone() {
   return Object.values(state.days).reduce((sum, value) => sum + Number(value || 0), 0);
+}
+
+function getFunnelValue(key) {
+  return Number(state.funnel[key] || 0);
+}
+
+function setFunnelValue(key, delta) {
+  const touches = getMonthDone();
+  const limits = {
+    replies: touches,
+    tests: getFunnelValue("replies"),
+    works: getFunnelValue("tests"),
+  };
+  const next = Math.max(0, Math.min(limits[key], getFunnelValue(key) + delta));
+  state.funnel[key] = next;
+  saveState();
+  render();
 }
 
 function getWeekdayAverage() {
@@ -134,6 +180,41 @@ function render() {
   [...monthGrid.children].forEach((dot, index) => {
     dot.classList.toggle("is-done", index < monthDone);
   });
+
+  renderFunnel();
+}
+
+function renderFunnel() {
+  const touches = getMonthDone();
+  const replies = getFunnelValue("replies");
+  const tests = getFunnelValue("tests");
+  const works = getFunnelValue("works");
+  const pct = (part, base) => (base > 0 ? Math.round((part / base) * 100) : 0);
+
+  funnelValues.touches.textContent = touches;
+  funnelValues.replies.textContent = replies;
+  funnelValues.tests.textContent = tests;
+  funnelValues.works.textContent = works;
+
+  funnelFills.touches.style.width = "100%";
+  funnelFills.replies.style.width = `${pct(replies, touches)}%`;
+  funnelFills.tests.style.width = `${pct(tests, touches)}%`;
+  funnelFills.works.style.width = `${pct(works, touches)}%`;
+
+  funnelMetas.touches.textContent = `${touches} из ${MONTH_GOAL} за месяц`;
+  funnelMetas.replies.textContent = `${pct(replies, touches)}% от касаний`;
+  funnelMetas.tests.textContent = `${pct(tests, replies)}% от ответов · ${pct(tests, touches)}% от касаний`;
+  funnelMetas.works.textContent = `${pct(works, tests)}% от тестовых · ${pct(works, touches)}% от касаний`;
+  funnelFromTouches.textContent = `Касание → работа: ${pct(works, touches)}%`;
+
+  const limits = { replies: touches, tests: replies, works: tests };
+
+  funnelButtons.forEach((button) => {
+    const key = button.dataset.key;
+    const delta = Number(button.dataset.delta);
+    const value = getFunnelValue(key);
+    button.disabled = delta < 0 ? value <= 0 : value >= limits[key];
+  });
 }
 
 resetTodayButton.addEventListener("click", () => {
@@ -144,6 +225,12 @@ fillTodayButton.addEventListener("click", () => {
   setTodayDone(DAILY_GOAL);
 });
 
+funnelButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    setFunnelValue(button.dataset.key, Number(button.dataset.delta));
+  });
+});
+
 resetMonthButton.addEventListener("click", () => {
   const confirmed = window.confirm("Сбросить весь прогресс текущего месяца?");
 
@@ -151,7 +238,7 @@ resetMonthButton.addEventListener("click", () => {
     return;
   }
 
-  state = { days: {} };
+  state = { days: {}, funnel: { ...EMPTY_FUNNEL } };
   saveState();
   render();
 });

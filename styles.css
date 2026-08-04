@@ -192,6 +192,109 @@ h2 {
   margin-top: 8px;
 }
 
+.funnel {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.funnel-chip {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-size: 13px;
+  font-weight: 650;
+  white-space: nowrap;
+}
+
+.funnel-step {
+  display: grid;
+  gap: 7px;
+}
+
+.funnel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.funnel-label {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.funnel-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.funnel-value {
+  min-width: 30px;
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.funnel-button {
+  width: 30px;
+  height: 30px;
+  border: 1px solid var(--line);
+  border-radius: 50%;
+  background: transparent;
+  line-height: 1;
+  transition: transform 140ms ease, background 140ms ease, border-color 140ms ease, opacity 140ms ease;
+}
+
+.funnel-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  background: var(--paper);
+  border-color: #bfb4a7;
+}
+
+.funnel-button:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.funnel-track {
+  height: 18px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--soft);
+}
+
+.funnel-fill {
+  width: 0%;
+  height: 100%;
+  border-radius: inherit;
+  transition: width 240ms ease;
+}
+
+.funnel-fill.is-touches {
+  background: var(--ink);
+}
+
+.funnel-fill.is-replies {
+  background: var(--accent);
+}
+
+.funnel-fill.is-tests {
+  background: #c08a3e;
+}
+
+.funnel-fill.is-works {
+  background: #c0542f;
+}
+
+.funnel-meta {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
 .panel {
   padding: 24px 0;
   border-top: 1px solid var(--line);

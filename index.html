@@ -47,6 +47,70 @@
         </article>
       </section>
 
+      <section class="panel" aria-label="Воронка конверсий">
+        <div class="section-title">
+          <h2>Воронка</h2>
+          <span class="funnel-chip" id="funnelFromTouches">Касание → работа: 0%</span>
+        </div>
+        <div class="funnel">
+          <article class="funnel-step">
+            <div class="funnel-head">
+              <span class="funnel-label">Касания</span>
+              <span class="funnel-value" id="funnelTouchesValue">0</span>
+            </div>
+            <div class="funnel-track">
+              <div class="funnel-fill is-touches" id="funnelTouchesFill"></div>
+            </div>
+            <p class="funnel-meta" id="funnelTouchesMeta"></p>
+          </article>
+
+          <article class="funnel-step">
+            <div class="funnel-head">
+              <span class="funnel-label">Ответили</span>
+              <div class="funnel-controls">
+                <button class="funnel-button" type="button" data-key="replies" data-delta="-1" aria-label="Минус один ответ">−</button>
+                <span class="funnel-value" id="funnelRepliesValue">0</span>
+                <button class="funnel-button" type="button" data-key="replies" data-delta="1" aria-label="Плюс один ответ">+</button>
+              </div>
+            </div>
+            <div class="funnel-track">
+              <div class="funnel-fill is-replies" id="funnelRepliesFill"></div>
+            </div>
+            <p class="funnel-meta" id="funnelRepliesMeta"></p>
+          </article>
+
+          <article class="funnel-step">
+            <div class="funnel-head">
+              <span class="funnel-label">Тестовые</span>
+              <div class="funnel-controls">
+                <button class="funnel-button" type="button" data-key="tests" data-delta="-1" aria-label="Минус одна тестовая">−</button>
+                <span class="funnel-value" id="funnelTestsValue">0</span>
+                <button class="funnel-button" type="button" data-key="tests" data-delta="1" aria-label="Плюс одна тестовая">+</button>
+              </div>
+            </div>
+            <div class="funnel-track">
+              <div class="funnel-fill is-tests" id="funnelTestsFill"></div>
+            </div>
+            <p class="funnel-meta" id="funnelTestsMeta"></p>
+          </article>
+
+          <article class="funnel-step">
+            <div class="funnel-head">
+              <span class="funnel-label">Работа</span>
+              <div class="funnel-controls">
+                <button class="funnel-button" type="button" data-key="works" data-delta="-1" aria-label="Минус одна работа">−</button>
+                <span class="funnel-value" id="funnelWorksValue">0</span>
+                <button class="funnel-button" type="button" data-key="works" data-delta="1" aria-label="Плюс одна работа">+</button>
+              </div>
+            </div>
+            <div class="funnel-track">
+              <div class="funnel-fill is-works" id="funnelWorksFill"></div>
+            </div>
+            <p class="funnel-meta" id="funnelWorksMeta"></p>
+          </article>
+        </div>
+      </section>
+
       <section class="panel" aria-label="Кружочки за сегодня">
         <div class="section-title">
           <h2>45 касаний</h2>
