@@ -47,6 +47,25 @@
         </article>
       </section>
 
+      <section class="panel" aria-label="Кружочки за сегодня">
+        <div class="section-title">
+          <h2>45 касаний</h2>
+          <button class="icon-button" id="fillTodayButton" type="button" aria-label="Закрыть цель дня" title="Закрыть цель дня">45</button>
+        </div>
+        <div class="daily-grid" id="dailyGrid"></div>
+      </section>
+
+      <section class="panel" aria-label="Карта месяца">
+        <div class="section-title">
+          <h2>1000 за месяц</h2>
+          <button class="ghost-button" id="resetMonthButton" type="button">Новый месяц</button>
+        </div>
+        <div class="month-progress">
+          <div id="monthProgressBar"></div>
+        </div>
+        <div class="month-grid" id="monthGrid"></div>
+      </section>
+
       <section class="panel" aria-label="Воронка конверсий">
         <div class="section-title">
           <h2>Воронка</h2>
@@ -75,6 +94,7 @@
             </div>
             <div class="funnel-track">
               <div class="funnel-fill is-replies" id="funnelRepliesFill"></div>
+              <span class="funnel-pct" id="funnelRepliesPct">0%</span>
             </div>
             <p class="funnel-meta" id="funnelRepliesMeta"></p>
           </article>
@@ -90,6 +110,7 @@
             </div>
             <div class="funnel-track">
               <div class="funnel-fill is-tests" id="funnelTestsFill"></div>
+              <span class="funnel-pct" id="funnelTestsPct">0%</span>
             </div>
             <p class="funnel-meta" id="funnelTestsMeta"></p>
           </article>
@@ -105,29 +126,11 @@
             </div>
             <div class="funnel-track">
               <div class="funnel-fill is-works" id="funnelWorksFill"></div>
+              <span class="funnel-pct" id="funnelWorksPct">0%</span>
             </div>
             <p class="funnel-meta" id="funnelWorksMeta"></p>
           </article>
         </div>
-      </section>
-
-      <section class="panel" aria-label="Кружочки за сегодня">
-        <div class="section-title">
-          <h2>45 касаний</h2>
-          <button class="icon-button" id="fillTodayButton" type="button" aria-label="Закрыть цель дня" title="Закрыть цель дня">45</button>
-        </div>
-        <div class="daily-grid" id="dailyGrid"></div>
-      </section>
-
-      <section class="panel" aria-label="Карта месяца">
-        <div class="section-title">
-          <h2>1000 за месяц</h2>
-          <button class="ghost-button" id="resetMonthButton" type="button">Новый месяц</button>
-        </div>
-        <div class="month-progress">
-          <div id="monthProgressBar"></div>
-        </div>
-        <div class="month-grid" id="monthGrid"></div>
       </section>
     </main>
 

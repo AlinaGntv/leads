@@ -35,6 +35,11 @@ const funnelMetas = {
   tests: document.querySelector("#funnelTestsMeta"),
   works: document.querySelector("#funnelWorksMeta"),
 };
+const funnelPcts = {
+  replies: document.querySelector("#funnelRepliesPct"),
+  tests: document.querySelector("#funnelTestsPct"),
+  works: document.querySelector("#funnelWorksPct"),
+};
 const funnelButtons = document.querySelectorAll(".funnel-button");
 
 const now = new Date();
@@ -206,6 +211,10 @@ function renderFunnel() {
   funnelMetas.tests.textContent = `${pct(tests, replies)}% от ответов · ${pct(tests, touches)}% от касаний`;
   funnelMetas.works.textContent = `${pct(works, tests)}% от тестовых · ${pct(works, touches)}% от касаний`;
   funnelFromTouches.textContent = `Касание → работа: ${pct(works, touches)}%`;
+
+  funnelPcts.replies.textContent = `${pct(replies, touches)}%`;
+  funnelPcts.tests.textContent = `${pct(tests, replies)}%`;
+  funnelPcts.works.textContent = `${pct(works, tests)}%`;
 
   const limits = { replies: touches, tests: replies, works: tests };
 
