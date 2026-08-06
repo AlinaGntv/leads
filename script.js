@@ -71,11 +71,35 @@ const nfMetas = {
 };
 const nfButtons = document.querySelectorAll("[data-nf]");
 
+const defaultShare = document.querySelector("#defaultShare");
+const defValues = {
+  ignored: document.querySelector("#defaultIgnoredValue"),
+  forwarded: document.querySelector("#defaultForwardedValue"),
+  refused: document.querySelector("#defaultRefusedValue"),
+};
+const defFills = {
+  ignored: document.querySelector("#defaultIgnoredFill"),
+  forwarded: document.querySelector("#defaultForwardedFill"),
+  refused: document.querySelector("#defaultRefusedFill"),
+};
+const defPcts = {
+  ignored: document.querySelector("#defaultIgnoredPct"),
+  forwarded: document.querySelector("#defaultForwardedPct"),
+  refused: document.querySelector("#defaultRefusedPct"),
+};
+const defMetas = {
+  ignored: document.querySelector("#defaultIgnoredMeta"),
+  forwarded: document.querySelector("#defaultForwardedMeta"),
+  refused: document.querySelector("#defaultRefusedMeta"),
+};
+const defOutcomeButtons = document.querySelectorAll("[data-outcome]");
+
 const now = new Date();
 const todayKey = toDateKey(now);
 const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 const storageKey = `${STORAGE_PREFIX}:${monthKey}`;
 const EMPTY_FUNNEL = { replies: 0, tests: 0, works: 0 };
+const EMPTY_OUTCOMES = { ignored: 0, forwarded: 0, refused: 0 };
 
 let state = loadState();
 const newStorageKey = `${STORAGE_PREFIX}-new:${monthKey}`;
@@ -94,20 +118,21 @@ function loadState() {
   const raw = localStorage.getItem(storageKey);
 
   if (!raw) {
-    return { days: {}, funnel: { ...EMPTY_FUNNEL } };
+    return { days: {}, funnel: { ...EMPTY_FUNNEL }, outcomes: { ...EMPTY_OUTCOMES } };
   }
 
   try {
     const parsed = JSON.parse(raw);
     if (!parsed || !parsed.days) {
-      return { days: {}, funnel: { ...EMPTY_FUNNEL } };
+      return { days: {}, funnel: { ...EMPTY_FUNNEL }, outcomes: { ...EMPTY_OUTCOMES } };
     }
     return {
       days: parsed.days,
       funnel: { ...EMPTY_FUNNEL, ...(parsed.funnel || {}) },
+      outcomes: { ...EMPTY_OUTCOMES, ...(parsed.outcomes || {}) },
     };
   } catch {
-    return { days: {}, funnel: { ...EMPTY_FUNNEL } };
+    return { days: {}, funnel: { ...EMPTY_FUNNEL }, outcomes: { ...EMPTY_OUTCOMES } };
   }
 }
 
@@ -218,6 +243,44 @@ function render() {
   });
 
   renderFunnel();
+  renderOutcomes();
+}
+
+function getOutcomeValue(key) {
+  return Number(state.outcomes[key] || 0);
+}
+
+function setOutcomeValue(key, delta) {
+  const next = Math.max(0, getOutcomeValue(key) + delta);
+  state.outcomes[key] = next;
+  saveState();
+  render();
+}
+
+function renderOutcomes() {
+  const ignored = getOutcomeValue("ignored");
+  const forwarded = getOutcomeValue("forwarded");
+  const refused = getOutcomeValue("refused");
+  const total = ignored + forwarded + refused;
+  const pct = (part, base) => (base > 0 ? Math.round((part / base) * 100) : 0);
+
+  defValues.ignored.textContent = ignored;
+  defValues.forwarded.textContent = forwarded;
+  defValues.refused.textContent = refused;
+
+  defFills.ignored.style.width = `${pct(ignored, total)}%`;
+  defFills.forwarded.style.width = `${pct(forwarded, total)}%`;
+  defFills.refused.style.width = `${pct(refused, total)}%`;
+
+  defPcts.ignored.textContent = `${pct(ignored, total)}%`;
+  defPcts.forwarded.textContent = `${pct(forwarded, total)}%`;
+  defPcts.refused.textContent = `${pct(refused, total)}%`;
+
+  defMetas.ignored.textContent = `${pct(ignored, total)}% от исходов`;
+  defMetas.forwarded.textContent = `${pct(forwarded, total)}% от исходов`;
+  defMetas.refused.textContent = `${pct(refused, total)}% от исходов`;
+
+  defaultShare.textContent = total > 0 ? `${pct(forwarded, total)}% передали руководству` : "Нет данных";
 }
 
 function renderFunnel() {
@@ -344,6 +407,12 @@ nfButtons.forEach((button) => {
   });
 });
 
+defOutcomeButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    setOutcomeValue(button.dataset.outcome, Number(button.dataset.delta));
+  });
+});
+
 tabs.forEach((tab) => {
   tab.addEventListener("click", () => switchView(tab.dataset.view));
 });
@@ -367,7 +436,7 @@ resetMonthButton.addEventListener("click", () => {
     return;
   }
 
-  state = { days: {}, funnel: { ...EMPTY_FUNNEL } };
+  state = { days: {}, funnel: { ...EMPTY_FUNNEL }, outcomes: { ...EMPTY_OUTCOMES } };
   saveState();
   render();
 });

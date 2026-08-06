@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Лиды</title>
-    <link rel="stylesheet" href="styles.css?v=6" />
+    <link rel="stylesheet" href="styles.css?v=7" />
   </head>
   <body>
     <main class="app">
@@ -138,6 +138,62 @@
             </article>
           </div>
         </section>
+
+        <section class="panel" aria-label="Исходы лидов">
+          <div class="section-title">
+            <h2>Исходы лидов</h2>
+            <span class="funnel-chip" id="defaultShare">Нет данных</span>
+          </div>
+          <div class="funnel">
+            <article class="funnel-step">
+              <div class="funnel-head">
+                <span class="funnel-label">Проигнорировали 2-е</span>
+                <div class="funnel-controls">
+                  <button class="funnel-button" type="button" data-outcome="ignored" data-delta="-1" aria-label="Минус один">−</button>
+                  <span class="funnel-value" id="defaultIgnoredValue">0</span>
+                  <button class="funnel-button" type="button" data-outcome="ignored" data-delta="1" aria-label="Плюс один">+</button>
+                </div>
+              </div>
+              <div class="funnel-track">
+                <div class="funnel-fill is-ignored" id="defaultIgnoredFill"></div>
+                <span class="funnel-pct" id="defaultIgnoredPct">0%</span>
+              </div>
+              <p class="funnel-meta" id="defaultIgnoredMeta">0% от исходов</p>
+            </article>
+
+            <article class="funnel-step">
+              <div class="funnel-head">
+                <span class="funnel-label">Передали руководству</span>
+                <div class="funnel-controls">
+                  <button class="funnel-button" type="button" data-outcome="forwarded" data-delta="-1" aria-label="Минус один">−</button>
+                  <span class="funnel-value" id="defaultForwardedValue">0</span>
+                  <button class="funnel-button" type="button" data-outcome="forwarded" data-delta="1" aria-label="Плюс один">+</button>
+                </div>
+              </div>
+              <div class="funnel-track">
+                <div class="funnel-fill is-forwarded" id="defaultForwardedFill"></div>
+                <span class="funnel-pct" id="defaultForwardedPct">0%</span>
+              </div>
+              <p class="funnel-meta" id="defaultForwardedMeta">0% от исходов</p>
+            </article>
+
+            <article class="funnel-step">
+              <div class="funnel-head">
+                <span class="funnel-label">Отказали</span>
+                <div class="funnel-controls">
+                  <button class="funnel-button" type="button" data-outcome="refused" data-delta="-1" aria-label="Минус один">−</button>
+                  <span class="funnel-value" id="defaultRefusedValue">0</span>
+                  <button class="funnel-button" type="button" data-outcome="refused" data-delta="1" aria-label="Плюс один">+</button>
+                </div>
+              </div>
+              <div class="funnel-track">
+                <div class="funnel-fill is-refused" id="defaultRefusedFill"></div>
+                <span class="funnel-pct" id="defaultRefusedPct">0%</span>
+              </div>
+              <p class="funnel-meta" id="defaultRefusedMeta">0% от исходов</p>
+            </article>
+          </div>
+        </section>
       </div>
 
       <div class="view is-hidden" id="viewNewFormat">
@@ -213,6 +269,6 @@
       </div>
     </main>
 
-    <script src="script.js?v=6"></script>
+    <script src="script.js?v=7"></script>
   </body>
 </html>
