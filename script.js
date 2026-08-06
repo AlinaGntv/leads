@@ -11,7 +11,7 @@ const weekdayAverage = document.querySelector("#weekdayAverage");
 const todayRing = document.querySelector("#todayRing");
 const todayPercent = document.querySelector("#todayPercent");
 const monthProgressBar = document.querySelector("#monthProgressBar");
-const monthLabel = document.querySelector("#monthLabel");
+const defaultMonthLabel = document.querySelector("#defaultMonthLabel");
 const resetTodayButton = document.querySelector("#resetTodayButton");
 const resetMonthButton = document.querySelector("#resetMonthButton");
 const fillTodayButton = document.querySelector("#fillTodayButton");
@@ -42,6 +42,35 @@ const funnelPcts = {
 };
 const funnelButtons = document.querySelectorAll(".funnel-button");
 
+const tabs = document.querySelectorAll(".tab");
+const viewDefault = document.querySelector("#viewDefault");
+const viewNewFormat = document.querySelector("#viewNewFormat");
+const resetNewButton = document.querySelector("#resetNewButton");
+const newMonthLabel = document.querySelector("#newMonthLabel");
+const nfTotal = document.querySelector("#nfTotal");
+const nfShare = document.querySelector("#nfShare");
+const nfValues = {
+  ignored: document.querySelector("#nfIgnoredValue"),
+  forwarded: document.querySelector("#nfForwardedValue"),
+  refused: document.querySelector("#nfRefusedValue"),
+};
+const nfFills = {
+  ignored: document.querySelector("#nfIgnoredFill"),
+  forwarded: document.querySelector("#nfForwardedFill"),
+  refused: document.querySelector("#nfRefusedFill"),
+};
+const nfPcts = {
+  ignored: document.querySelector("#nfIgnoredPct"),
+  forwarded: document.querySelector("#nfForwardedPct"),
+  refused: document.querySelector("#nfRefusedPct"),
+};
+const nfMetas = {
+  ignored: document.querySelector("#nfIgnoredMeta"),
+  forwarded: document.querySelector("#nfForwardedMeta"),
+  refused: document.querySelector("#nfRefusedMeta"),
+};
+const nfButtons = document.querySelectorAll("[data-nf]");
+
 const now = new Date();
 const todayKey = toDateKey(now);
 const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -49,6 +78,9 @@ const storageKey = `${STORAGE_PREFIX}:${monthKey}`;
 const EMPTY_FUNNEL = { replies: 0, tests: 0, works: 0 };
 
 let state = loadState();
+const newStorageKey = `${STORAGE_PREFIX}-new:${monthKey}`;
+const VIEW_KEY = `${STORAGE_PREFIX}:view`;
+let newState = loadNewState();
 
 function toDateKey(date) {
   return [
@@ -175,7 +207,7 @@ function render() {
   todayPercent.textContent = `${Math.round(todayRatio * 100)}%`;
   todayRing.style.strokeDashoffset = String(314 - 314 * todayRatio);
   monthProgressBar.style.width = `${monthRatio * 100}%`;
-  monthLabel.textContent = now.toLocaleDateString("ru-RU", { month: "long", year: "numeric" });
+  defaultMonthLabel.textContent = now.toLocaleDateString("ru-RU", { month: "long", year: "numeric" });
 
   [...dailyGrid.children].forEach((dot, index) => {
     dot.classList.toggle("is-done", index < todayDone);
@@ -225,6 +257,73 @@ function renderFunnel() {
   });
 }
 
+function loadNewState() {
+  const raw = localStorage.getItem(newStorageKey);
+  const base = { ignored: 0, forwarded: 0, refused: 0 };
+
+  if (!raw) {
+    return { outcomes: { ...base } };
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    return { outcomes: { ...base, ...(parsed && parsed.outcomes ? parsed.outcomes : {}) } };
+  } catch {
+    return { outcomes: { ...base } };
+  }
+}
+
+function saveNewState() {
+  localStorage.setItem(newStorageKey, JSON.stringify(newState));
+}
+
+function getNewValue(key) {
+  return Number(newState.outcomes[key] || 0);
+}
+
+function setNewValue(key, delta) {
+  const next = Math.max(0, getNewValue(key) + delta);
+  newState.outcomes[key] = next;
+  saveNewState();
+  renderNew();
+}
+
+function renderNew() {
+  const ignored = getNewValue("ignored");
+  const forwarded = getNewValue("forwarded");
+  const refused = getNewValue("refused");
+  const total = ignored + forwarded + refused;
+  const pct = (part, base) => (base > 0 ? Math.round((part / base) * 100) : 0);
+
+  nfValues.ignored.textContent = ignored;
+  nfValues.forwarded.textContent = forwarded;
+  nfValues.refused.textContent = refused;
+  nfTotal.textContent = total;
+
+  nfFills.ignored.style.width = `${pct(ignored, total)}%`;
+  nfFills.forwarded.style.width = `${pct(forwarded, total)}%`;
+  nfFills.refused.style.width = `${pct(refused, total)}%`;
+
+  nfPcts.ignored.textContent = `${pct(ignored, total)}%`;
+  nfPcts.forwarded.textContent = `${pct(forwarded, total)}%`;
+  nfPcts.refused.textContent = `${pct(refused, total)}%`;
+
+  nfMetas.ignored.textContent = `${pct(ignored, total)}% от исходов`;
+  nfMetas.forwarded.textContent = `${pct(forwarded, total)}% от исходов`;
+  nfMetas.refused.textContent = `${pct(refused, total)}% от исходов`;
+
+  newMonthLabel.textContent = now.toLocaleDateString("ru-RU", { month: "long", year: "numeric" });
+  nfShare.textContent = total > 0 ? `${pct(forwarded, total)}% передали руководству` : "Нет данных";
+}
+
+function switchView(key) {
+  viewDefault.classList.toggle("is-hidden", key !== "default");
+  viewNewFormat.classList.toggle("is-hidden", key !== "new");
+  tabs.forEach((tab) => tab.classList.toggle("is-active", tab.dataset.view === key));
+  localStorage.setItem(VIEW_KEY, key);
+  renderNew();
+}
+
 resetTodayButton.addEventListener("click", () => {
   setTodayDone(0);
 });
@@ -237,6 +336,28 @@ funnelButtons.forEach((button) => {
   button.addEventListener("click", () => {
     setFunnelValue(button.dataset.key, Number(button.dataset.delta));
   });
+});
+
+nfButtons.forEach((button) => {
+  button.addEventListener("click", () => {
+    setNewValue(button.dataset.nf, Number(button.dataset.delta));
+  });
+});
+
+tabs.forEach((tab) => {
+  tab.addEventListener("click", () => switchView(tab.dataset.view));
+});
+
+resetNewButton.addEventListener("click", () => {
+  const confirmed = window.confirm("Сбросить все исходы нового формата за этот месяц?");
+
+  if (!confirmed) {
+    return;
+  }
+
+  newState = { outcomes: { ignored: 0, forwarded: 0, refused: 0 } };
+  saveNewState();
+  renderNew();
 });
 
 resetMonthButton.addEventListener("click", () => {
@@ -254,3 +375,5 @@ resetMonthButton.addEventListener("click", () => {
 createDailyDots();
 createMonthDots();
 render();
+switchView(localStorage.getItem(VIEW_KEY) === "new" ? "new" : "default");
+renderNew();
