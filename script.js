@@ -42,58 +42,6 @@ const funnelPcts = {
 };
 const funnelButtons = document.querySelectorAll(".funnel-button");
 
-const tabs = document.querySelectorAll(".tab");
-const viewDefault = document.querySelector("#viewDefault");
-const viewNewFormat = document.querySelector("#viewNewFormat");
-const resetNewButton = document.querySelector("#resetNewButton");
-const newMonthLabel = document.querySelector("#newMonthLabel");
-const nfTotal = document.querySelector("#nfTotal");
-const nfShare = document.querySelector("#nfShare");
-const nfValues = {
-  ignored: document.querySelector("#nfIgnoredValue"),
-  forwarded: document.querySelector("#nfForwardedValue"),
-  refused: document.querySelector("#nfRefusedValue"),
-};
-const nfFills = {
-  ignored: document.querySelector("#nfIgnoredFill"),
-  forwarded: document.querySelector("#nfForwardedFill"),
-  refused: document.querySelector("#nfRefusedFill"),
-};
-const nfPcts = {
-  ignored: document.querySelector("#nfIgnoredPct"),
-  forwarded: document.querySelector("#nfForwardedPct"),
-  refused: document.querySelector("#nfRefusedPct"),
-};
-const nfMetas = {
-  ignored: document.querySelector("#nfIgnoredMeta"),
-  forwarded: document.querySelector("#nfForwardedMeta"),
-  refused: document.querySelector("#nfRefusedMeta"),
-};
-const nfButtons = document.querySelectorAll("[data-nf]");
-
-const defaultShare = document.querySelector("#defaultShare");
-const defValues = {
-  ignored: document.querySelector("#defaultIgnoredValue"),
-  forwarded: document.querySelector("#defaultForwardedValue"),
-  refused: document.querySelector("#defaultRefusedValue"),
-};
-const defFills = {
-  ignored: document.querySelector("#defaultIgnoredFill"),
-  forwarded: document.querySelector("#defaultForwardedFill"),
-  refused: document.querySelector("#defaultRefusedFill"),
-};
-const defPcts = {
-  ignored: document.querySelector("#defaultIgnoredPct"),
-  forwarded: document.querySelector("#defaultForwardedPct"),
-  refused: document.querySelector("#defaultRefusedPct"),
-};
-const defMetas = {
-  ignored: document.querySelector("#defaultIgnoredMeta"),
-  forwarded: document.querySelector("#defaultForwardedMeta"),
-  refused: document.querySelector("#defaultRefusedMeta"),
-};
-const defOutcomeButtons = document.querySelectorAll("[data-outcome]");
-
 const extraPlus = document.querySelector("#extraPlus");
 const extraMinus = document.querySelector("#extraMinus");
 const extraCount = document.querySelector("#extraCount");
@@ -104,12 +52,8 @@ const todayKey = toDateKey(now);
 const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 const storageKey = `${STORAGE_PREFIX}:${monthKey}`;
 const EMPTY_FUNNEL = { replies: 0, tests: 0, works: 0 };
-const EMPTY_OUTCOMES = { ignored: 0, forwarded: 0, refused: 0 };
 
 let state = loadState();
-const newStorageKey = `${STORAGE_PREFIX}-new:${monthKey}`;
-const VIEW_KEY = `${STORAGE_PREFIX}:view`;
-let newState = loadNewState();
 
 function toDateKey(date) {
   return [
@@ -123,22 +67,21 @@ function loadState() {
   const raw = localStorage.getItem(storageKey);
 
   if (!raw) {
-    return { days: {}, extra: {}, funnel: { ...EMPTY_FUNNEL }, outcomes: { ...EMPTY_OUTCOMES } };
+    return { days: {}, extra: {}, funnel: { ...EMPTY_FUNNEL } };
   }
 
   try {
     const parsed = JSON.parse(raw);
     if (!parsed || !parsed.days) {
-      return { days: {}, extra: {}, funnel: { ...EMPTY_FUNNEL }, outcomes: { ...EMPTY_OUTCOMES } };
+      return { days: {}, extra: {}, funnel: { ...EMPTY_FUNNEL } };
     }
     return {
       days: parsed.days,
       extra: parsed.extra || {},
       funnel: { ...EMPTY_FUNNEL, ...(parsed.funnel || {}) },
-      outcomes: { ...EMPTY_OUTCOMES, ...(parsed.outcomes || {}) },
     };
   } catch {
-    return { days: {}, extra: {}, funnel: { ...EMPTY_FUNNEL }, outcomes: { ...EMPTY_OUTCOMES } };
+    return { days: {}, extra: {}, funnel: { ...EMPTY_FUNNEL } };
   }
 }
 
@@ -255,9 +198,8 @@ function toggleDailyDot(position) {
 }
 
 function render() {
-  const todayDone = getTodayDone();
-  const todayExtra = getTodayExtra();
   const todayTotal = getTodayTotal();
+  const todayExtra = getTodayExtra();
   const monthDone = getMonthDone();
   const todayRatio = Math.min(todayTotal / DAILY_GOAL, 1);
   const monthRatio = Math.min(monthDone / MONTH_GOAL, 1);
@@ -280,7 +222,7 @@ function render() {
   }
 
   [...dailyGrid.children].forEach((dot, index) => {
-    dot.classList.toggle("is-done", index < todayDone);
+    dot.classList.toggle("is-done", index < getTodayDone());
   });
 
   [...monthGrid.children].forEach((dot, index) => {
@@ -288,44 +230,6 @@ function render() {
   });
 
   renderFunnel();
-  renderOutcomes();
-}
-
-function getOutcomeValue(key) {
-  return Number(state.outcomes[key] || 0);
-}
-
-function setOutcomeValue(key, delta) {
-  const next = Math.max(0, getOutcomeValue(key) + delta);
-  state.outcomes[key] = next;
-  saveState();
-  render();
-}
-
-function renderOutcomes() {
-  const ignored = getOutcomeValue("ignored");
-  const forwarded = getOutcomeValue("forwarded");
-  const refused = getOutcomeValue("refused");
-  const total = ignored + forwarded + refused;
-  const pct = (part, base) => (base > 0 ? Math.round((part / base) * 100) : 0);
-
-  defValues.ignored.textContent = ignored;
-  defValues.forwarded.textContent = forwarded;
-  defValues.refused.textContent = refused;
-
-  defFills.ignored.style.width = `${pct(ignored, total)}%`;
-  defFills.forwarded.style.width = `${pct(forwarded, total)}%`;
-  defFills.refused.style.width = `${pct(refused, total)}%`;
-
-  defPcts.ignored.textContent = `${pct(ignored, total)}%`;
-  defPcts.forwarded.textContent = `${pct(forwarded, total)}%`;
-  defPcts.refused.textContent = `${pct(refused, total)}%`;
-
-  defMetas.ignored.textContent = `${pct(ignored, total)}% от исходов`;
-  defMetas.forwarded.textContent = `${pct(forwarded, total)}% от исходов`;
-  defMetas.refused.textContent = `${pct(refused, total)}% от исходов`;
-
-  defaultShare.textContent = total > 0 ? `${pct(forwarded, total)}% передали руководству` : "Нет данных";
 }
 
 function renderFunnel() {
@@ -365,73 +269,6 @@ function renderFunnel() {
   });
 }
 
-function loadNewState() {
-  const raw = localStorage.getItem(newStorageKey);
-  const base = { ignored: 0, forwarded: 0, refused: 0 };
-
-  if (!raw) {
-    return { outcomes: { ...base } };
-  }
-
-  try {
-    const parsed = JSON.parse(raw);
-    return { outcomes: { ...base, ...(parsed && parsed.outcomes ? parsed.outcomes : {}) } };
-  } catch {
-    return { outcomes: { ...base } };
-  }
-}
-
-function saveNewState() {
-  localStorage.setItem(newStorageKey, JSON.stringify(newState));
-}
-
-function getNewValue(key) {
-  return Number(newState.outcomes[key] || 0);
-}
-
-function setNewValue(key, delta) {
-  const next = Math.max(0, getNewValue(key) + delta);
-  newState.outcomes[key] = next;
-  saveNewState();
-  renderNew();
-}
-
-function renderNew() {
-  const ignored = getNewValue("ignored");
-  const forwarded = getNewValue("forwarded");
-  const refused = getNewValue("refused");
-  const total = ignored + forwarded + refused;
-  const pct = (part, base) => (base > 0 ? Math.round((part / base) * 100) : 0);
-
-  nfValues.ignored.textContent = ignored;
-  nfValues.forwarded.textContent = forwarded;
-  nfValues.refused.textContent = refused;
-  nfTotal.textContent = total;
-
-  nfFills.ignored.style.width = `${pct(ignored, total)}%`;
-  nfFills.forwarded.style.width = `${pct(forwarded, total)}%`;
-  nfFills.refused.style.width = `${pct(refused, total)}%`;
-
-  nfPcts.ignored.textContent = `${pct(ignored, total)}%`;
-  nfPcts.forwarded.textContent = `${pct(forwarded, total)}%`;
-  nfPcts.refused.textContent = `${pct(refused, total)}%`;
-
-  nfMetas.ignored.textContent = `${pct(ignored, total)}% от исходов`;
-  nfMetas.forwarded.textContent = `${pct(forwarded, total)}% от исходов`;
-  nfMetas.refused.textContent = `${pct(refused, total)}% от исходов`;
-
-  newMonthLabel.textContent = now.toLocaleDateString("ru-RU", { month: "long", year: "numeric" });
-  nfShare.textContent = total > 0 ? `${pct(forwarded, total)}% передали руководству` : "Нет данных";
-}
-
-function switchView(key) {
-  viewDefault.classList.toggle("is-hidden", key !== "default");
-  viewNewFormat.classList.toggle("is-hidden", key !== "new");
-  tabs.forEach((tab) => tab.classList.toggle("is-active", tab.dataset.view === key));
-  localStorage.setItem(VIEW_KEY, key);
-  renderNew();
-}
-
 resetTodayButton.addEventListener("click", () => {
   clearToday();
 });
@@ -454,34 +291,6 @@ funnelButtons.forEach((button) => {
   });
 });
 
-nfButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    setNewValue(button.dataset.nf, Number(button.dataset.delta));
-  });
-});
-
-defOutcomeButtons.forEach((button) => {
-  button.addEventListener("click", () => {
-    setOutcomeValue(button.dataset.outcome, Number(button.dataset.delta));
-  });
-});
-
-tabs.forEach((tab) => {
-  tab.addEventListener("click", () => switchView(tab.dataset.view));
-});
-
-resetNewButton.addEventListener("click", () => {
-  const confirmed = window.confirm("Сбросить все исходы нового формата за этот месяц?");
-
-  if (!confirmed) {
-    return;
-  }
-
-  newState = { outcomes: { ignored: 0, forwarded: 0, refused: 0 } };
-  saveNewState();
-  renderNew();
-});
-
 resetMonthButton.addEventListener("click", () => {
   const confirmed = window.confirm("Сбросить весь прогресс текущего месяца?");
 
@@ -489,7 +298,7 @@ resetMonthButton.addEventListener("click", () => {
     return;
   }
 
-  state = { days: {}, extra: {}, funnel: { ...EMPTY_FUNNEL }, outcomes: { ...EMPTY_OUTCOMES } };
+  state = { days: {}, extra: {}, funnel: { ...EMPTY_FUNNEL } };
   saveState();
   render();
 });
@@ -497,5 +306,3 @@ resetMonthButton.addEventListener("click", () => {
 createDailyDots();
 createMonthDots();
 render();
-switchView(localStorage.getItem(VIEW_KEY) === "new" ? "new" : "default");
-renderNew();
