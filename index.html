@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Лиды</title>
-    <link rel="stylesheet" href="styles.css?v=8" />
+    <link rel="stylesheet" href="styles.css?v=9" />
   </head>
   <body>
     <main class="app">
@@ -28,6 +28,7 @@
             <div class="big-number">
               <span id="todayCount">0</span><span class="suffix">/45</span>
             </div>
+            <span class="extra-chip is-hidden" id="todayExtraChip">+0 сверх нормы</span>
           </div>
           <div class="ring" aria-hidden="true">
             <svg viewBox="0 0 120 120">
@@ -57,6 +58,14 @@
           <div class="section-title">
             <h2>45 касаний</h2>
             <button class="icon-button" id="fillTodayButton" type="button" aria-label="Закрыть цель дня" title="Закрыть цель дня">45</button>
+          </div>
+          <div class="extra-row">
+            <span class="extra-label">Касания сверх нормы</span>
+            <div class="funnel-controls">
+              <button class="funnel-button" type="button" id="extraMinus" aria-label="Минус касание сверх нормы">−</button>
+              <span class="funnel-value" id="extraCount">0</span>
+              <button class="funnel-button" type="button" id="extraPlus" aria-label="Плюс касание сверх нормы">+</button>
+            </div>
           </div>
           <div class="daily-grid" id="dailyGrid"></div>
         </section>
@@ -269,6 +278,6 @@
       </div>
     </main>
 
-    <script src="script.js?v=8"></script>
+    <script src="script.js?v=9"></script>
   </body>
 </html>

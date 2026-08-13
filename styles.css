@@ -369,6 +369,33 @@ h2 {
   border-top: 1px solid var(--line);
 }
 
+.extra-chip {
+  display: inline-block;
+  margin-top: 12px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #c08a3e;
+  color: #fffdfa;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.extra-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 10px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+}
+
+.extra-label {
+  color: var(--muted);
+  font-size: 13px;
+}
+
 .daily-grid,
 .month-grid {
   display: grid;

@@ -94,6 +94,11 @@ const defMetas = {
 };
 const defOutcomeButtons = document.querySelectorAll("[data-outcome]");
 
+const extraPlus = document.querySelector("#extraPlus");
+const extraMinus = document.querySelector("#extraMinus");
+const extraCount = document.querySelector("#extraCount");
+const todayExtraChip = document.querySelector("#todayExtraChip");
+
 const now = new Date();
 const todayKey = toDateKey(now);
 const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
@@ -118,21 +123,22 @@ function loadState() {
   const raw = localStorage.getItem(storageKey);
 
   if (!raw) {
-    return { days: {}, funnel: { ...EMPTY_FUNNEL }, outcomes: { ...EMPTY_OUTCOMES } };
+    return { days: {}, extra: {}, funnel: { ...EMPTY_FUNNEL }, outcomes: { ...EMPTY_OUTCOMES } };
   }
 
   try {
     const parsed = JSON.parse(raw);
     if (!parsed || !parsed.days) {
-      return { days: {}, funnel: { ...EMPTY_FUNNEL }, outcomes: { ...EMPTY_OUTCOMES } };
+      return { days: {}, extra: {}, funnel: { ...EMPTY_FUNNEL }, outcomes: { ...EMPTY_OUTCOMES } };
     }
     return {
       days: parsed.days,
+      extra: parsed.extra || {},
       funnel: { ...EMPTY_FUNNEL, ...(parsed.funnel || {}) },
       outcomes: { ...EMPTY_OUTCOMES, ...(parsed.outcomes || {}) },
     };
   } catch {
-    return { days: {}, funnel: { ...EMPTY_FUNNEL }, outcomes: { ...EMPTY_OUTCOMES } };
+    return { days: {}, extra: {}, funnel: { ...EMPTY_FUNNEL }, outcomes: { ...EMPTY_OUTCOMES } };
   }
 }
 
@@ -144,14 +150,40 @@ function getTodayDone() {
   return state.days[todayKey] || 0;
 }
 
+function getTodayExtra() {
+  return state.extra ? Number(state.extra[todayKey] || 0) : 0;
+}
+
+function getTodayTotal() {
+  return getTodayDone() + getTodayExtra();
+}
+
 function setTodayDone(value) {
   state.days[todayKey] = Math.max(0, Math.min(DAILY_GOAL, value));
   saveState();
   render();
 }
 
+function setTodayExtra(value) {
+  state.extra = state.extra || {};
+  state.extra[todayKey] = Math.max(0, value);
+  saveState();
+  render();
+}
+
+function clearToday() {
+  state.days[todayKey] = 0;
+  state.extra = state.extra || {};
+  state.extra[todayKey] = 0;
+  saveState();
+  render();
+}
+
 function getMonthDone() {
-  return Object.values(state.days).reduce((sum, value) => sum + Number(value || 0), 0);
+  return Object.entries(state.days).reduce((sum, [key, value]) => {
+    const extra = state.extra ? Number(state.extra[key] || 0) : 0;
+    return sum + Number(value || 0) + extra;
+  }, 0);
 }
 
 function getFunnelValue(key) {
@@ -178,7 +210,10 @@ function getWeekdayAverage() {
       const day = date.getDay();
       return day !== 0 && day !== 6;
     })
-    .map(([, value]) => Number(value || 0));
+    .map(([dateKey, value]) => {
+      const extra = state.extra ? Number(state.extra[dateKey] || 0) : 0;
+      return Number(value || 0) + extra;
+    });
 
   if (values.length === 0) {
     return 0;
@@ -221,18 +256,28 @@ function toggleDailyDot(position) {
 
 function render() {
   const todayDone = getTodayDone();
+  const todayExtra = getTodayExtra();
+  const todayTotal = getTodayTotal();
   const monthDone = getMonthDone();
-  const todayRatio = todayDone / DAILY_GOAL;
+  const todayRatio = Math.min(todayTotal / DAILY_GOAL, 1);
   const monthRatio = Math.min(monthDone / MONTH_GOAL, 1);
 
-  todayCount.textContent = todayDone;
+  todayCount.textContent = todayTotal;
   monthCount.textContent = monthDone;
   monthLeft.textContent = Math.max(MONTH_GOAL - monthDone, 0);
   weekdayAverage.textContent = getWeekdayAverage();
-  todayPercent.textContent = `${Math.round(todayRatio * 100)}%`;
+  todayPercent.textContent = `${Math.round((todayTotal / DAILY_GOAL) * 100)}%`;
   todayRing.style.strokeDashoffset = String(314 - 314 * todayRatio);
   monthProgressBar.style.width = `${monthRatio * 100}%`;
   defaultMonthLabel.textContent = now.toLocaleDateString("ru-RU", { month: "long", year: "numeric" });
+
+  extraCount.textContent = todayExtra;
+  if (todayExtra > 0) {
+    todayExtraChip.textContent = `+${todayExtra} сверх нормы`;
+    todayExtraChip.classList.remove("is-hidden");
+  } else {
+    todayExtraChip.classList.add("is-hidden");
+  }
 
   [...dailyGrid.children].forEach((dot, index) => {
     dot.classList.toggle("is-done", index < todayDone);
@@ -388,11 +433,19 @@ function switchView(key) {
 }
 
 resetTodayButton.addEventListener("click", () => {
-  setTodayDone(0);
+  clearToday();
 });
 
 fillTodayButton.addEventListener("click", () => {
   setTodayDone(DAILY_GOAL);
+});
+
+extraPlus.addEventListener("click", () => {
+  setTodayExtra(getTodayExtra() + 1);
+});
+
+extraMinus.addEventListener("click", () => {
+  setTodayExtra(getTodayExtra() - 1);
 });
 
 funnelButtons.forEach((button) => {
@@ -436,7 +489,7 @@ resetMonthButton.addEventListener("click", () => {
     return;
   }
 
-  state = { days: {}, funnel: { ...EMPTY_FUNNEL }, outcomes: { ...EMPTY_OUTCOMES } };
+  state = { days: {}, extra: {}, funnel: { ...EMPTY_FUNNEL }, outcomes: { ...EMPTY_OUTCOMES } };
   saveState();
   render();
 });
