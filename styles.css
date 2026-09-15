@@ -50,7 +50,8 @@ button {
   flex-wrap: wrap;
 }
 
-.day-nav {
+.day-nav,
+.month-nav {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -59,13 +60,19 @@ button {
   padding: 10px 12px;
 }
 
-.day-nav-center {
+.month-nav {
+  margin-bottom: 10px;
+}
+
+.day-nav-center,
+.month-nav-center {
   display: flex;
   align-items: center;
   gap: 8px;
 }
 
-.day-nav input[type="date"] {
+.day-nav input[type="date"],
+.month-nav input[type="month"] {
   border: 1px solid var(--line);
   border-radius: 10px;
   padding: 6px 10px;
@@ -75,7 +82,8 @@ button {
   background: rgba(255, 253, 250, 0.6);
 }
 
-.day-nav input[type="date"]:focus {
+.day-nav input[type="date"]:focus,
+.month-nav input[type="month"]:focus {
   outline: none;
   border-color: var(--accent);
 }
@@ -241,6 +249,35 @@ h2 {
   font-size: 13px;
   font-weight: 650;
   white-space: nowrap;
+}
+
+.funnel-modes {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  width: max-content;
+  margin-top: 14px;
+}
+
+.mode-chip {
+  padding: 5px 14px;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 600;
+  transition: background 160ms ease, color 160ms ease;
+}
+
+.mode-chip:hover:not(.is-active) {
+  color: var(--ink);
+}
+
+.mode-chip.is-active {
+  background: var(--ink);
+  color: var(--paper);
 }
 
 .funnel-step {

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Лиды</title>
-    <link rel="stylesheet" href="styles.css?v=12" />
+    <link rel="stylesheet" href="styles.css?v=13" />
   </head>
   <body>
     <main class="app">
@@ -15,6 +15,14 @@
         </div>
         <button class="ghost-button" id="resetTodayButton" type="button">Сбросить день</button>
       </header>
+
+      <div class="panel month-nav" aria-label="Навигация по месяцам">
+        <button class="icon-button" id="prevMonthButton" type="button" aria-label="Предыдущий месяц">‹</button>
+        <div class="month-nav-center">
+          <input type="month" id="monthPicker" aria-label="Выбрать месяц" />
+        </div>
+        <button class="icon-button" id="nextMonthButton" type="button" aria-label="Следующий месяц">›</button>
+      </div>
 
       <div class="panel day-nav" aria-label="Навигация по дате">
         <button class="icon-button" id="prevDayButton" type="button" aria-label="Предыдущий день">‹</button>
@@ -88,6 +96,10 @@
         <div class="section-title">
           <h2>Воронка</h2>
           <span class="funnel-chip" id="funnelFromTouches">Касание → работа: 0%</span>
+        </div>
+        <div class="funnel-modes" aria-label="Период воронки">
+          <button class="mode-chip" id="funnelModeDay" type="button">День</button>
+          <button class="mode-chip" id="funnelModeMonth" type="button">Месяц</button>
         </div>
         <div class="funnel">
           <article class="funnel-step">
@@ -169,6 +181,6 @@
       </section>
     </main>
 
-    <script src="script.js?v=12"></script>
+    <script src="script.js?v=13"></script>
   </body>
 </html>

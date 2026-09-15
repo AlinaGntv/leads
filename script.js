@@ -17,12 +17,18 @@ const resetTodayButton = document.querySelector("#resetTodayButton");
 const resetMonthButton = document.querySelector("#resetMonthButton");
 const fillTodayButton = document.querySelector("#fillTodayButton");
 
+const prevMonthButton = document.querySelector("#prevMonthButton");
+const nextMonthButton = document.querySelector("#nextMonthButton");
+const monthPicker = document.querySelector("#monthPicker");
+
 const prevDayButton = document.querySelector("#prevDayButton");
 const nextDayButton = document.querySelector("#nextDayButton");
 const datePicker = document.querySelector("#datePicker");
 const goTodayButton = document.querySelector("#goTodayButton");
 
 const funnelFromTouches = document.querySelector("#funnelFromTouches");
+const funnelModeDay = document.querySelector("#funnelModeDay");
+const funnelModeMonth = document.querySelector("#funnelModeMonth");
 const funnelValues = {
   touches: document.querySelector("#funnelTouchesValue"),
   replies: document.querySelector("#funnelRepliesValue"),
@@ -58,22 +64,24 @@ const logTotals = document.querySelector("#logTotals");
 
 const now = new Date();
 const todayKey = toDateKey(now);
-const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
-const storageKey = `${STORAGE_PREFIX}:${monthKey}`;
-const monthFirstKey = `${monthKey}-01`;
-const monthLastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-const monthLastKey = `${monthKey}-${String(monthLastDay).padStart(2, "0")}`;
+const todayMonth = toMonthKey(now);
 const EMPTY_FUNNEL_DAY = { replies: 0, tests: 0, works: 0 };
 
+let viewMonth = toMonthKey(now);
 let viewKey = todayKey;
+let viewMode = "day";
 let state = loadState();
 
+function pad2(number) {
+  return String(number).padStart(2, "0");
+}
+
 function toDateKey(date) {
-  return [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, "0"),
-    String(date.getDate()).padStart(2, "0"),
-  ].join("-");
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`;
+}
+
+function toMonthKey(date) {
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}`;
 }
 
 function fromDateKey(dateKey) {
@@ -86,8 +94,29 @@ function shiftDateKey(dateKey, deltaDays) {
   return toDateKey(date);
 }
 
+function shiftMonth(monthKeyValue, deltaMonths) {
+  const [year, month] = monthKeyValue.split("-").map(Number);
+  const date = new Date(year, month - 1, 1);
+  date.setMonth(date.getMonth() + deltaMonths);
+  return toMonthKey(date);
+}
+
+function monthBounds(monthKeyValue) {
+  const [year, month] = monthKeyValue.split("-").map(Number);
+  const monthLastDay = new Date(year, month, 0).getDate();
+  return {
+    first: `${monthKeyValue}-01`,
+    last: `${monthKeyValue}-${pad2(monthLastDay)}`,
+    lastDay: monthLastDay,
+  };
+}
+
 function isDateKey(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function isMonthKey(value) {
+  return /^\d{4}-\d{2}$/.test(value) && value.slice(0, 4) !== "0000";
 }
 
 function formatShort(dateKey) {
@@ -102,11 +131,19 @@ function formatLong(dateKey) {
   });
 }
 
+function formatMonth(monthKeyValue) {
+  const [year, month] = monthKeyValue.split("-").map(Number);
+  return new Date(year, month - 1, 1).toLocaleDateString("ru-RU", {
+    month: "long",
+    year: "numeric",
+  });
+}
+
 function viewLabel() {
   return viewKey === todayKey ? "Сегодня" : formatShort(viewKey);
 }
 
-function normalizeFunnel(funnel) {
+function normalizeFunnel(funnel, fallbackDay) {
   if (!funnel) {
     return {};
   }
@@ -121,11 +158,11 @@ function normalizeFunnel(funnel) {
     return normalized;
   }
 
-  return { [todayKey]: { ...EMPTY_FUNNEL_DAY, ...funnel } };
+  return { [fallbackDay]: { ...EMPTY_FUNNEL_DAY, ...funnel } };
 }
 
 function loadState() {
-  const raw = localStorage.getItem(storageKey);
+  const raw = localStorage.getItem(`${STORAGE_PREFIX}:${viewMonth}`);
 
   if (!raw) {
     return { days: {}, extra: {}, funnel: {} };
@@ -133,13 +170,15 @@ function loadState() {
 
   try {
     const parsed = JSON.parse(raw);
+    const bounds = monthBounds(viewMonth);
+    const fallbackDay = todayKey >= bounds.first && todayKey <= bounds.last ? todayKey : bounds.first;
     if (!parsed || !parsed.days) {
       return { days: {}, extra: {}, funnel: {} };
     }
     return {
       days: parsed.days,
       extra: parsed.extra || {},
-      funnel: normalizeFunnel(parsed.funnel),
+      funnel: normalizeFunnel(parsed.funnel, fallbackDay),
     };
   } catch {
     return { days: {}, extra: {}, funnel: {} };
@@ -147,7 +186,7 @@ function loadState() {
 }
 
 function saveState() {
-  localStorage.setItem(storageKey, JSON.stringify(state));
+  localStorage.setItem(`${STORAGE_PREFIX}:${viewMonth}`, JSON.stringify(state));
 }
 
 function getDayDone(dateKey) {
@@ -196,6 +235,21 @@ function getDayFunnel(dateKey, key) {
   return day ? Number(day[key] || 0) : 0;
 }
 
+function getMonthFunnel() {
+  return Object.values(state.funnel || {}).reduce(
+    (acc, day) => {
+      if (!day || typeof day !== "object") {
+        return acc;
+      }
+      acc.replies += Number(day.replies || 0);
+      acc.tests += Number(day.tests || 0);
+      acc.works += Number(day.works || 0);
+      return acc;
+    },
+    { replies: 0, tests: 0, works: 0 },
+  );
+}
+
 function setFunnelValue(key, delta) {
   const day = state.funnel[viewKey] || { ...EMPTY_FUNNEL_DAY };
   state.funnel[viewKey] = day;
@@ -213,10 +267,38 @@ function setFunnelValue(key, delta) {
 }
 
 function selectDay(dateKey) {
-  if (!isDateKey(dateKey) || dateKey < monthFirstKey || dateKey > monthLastKey) {
+  const bounds = monthBounds(viewMonth);
+  if (!isDateKey(dateKey) || dateKey < bounds.first || dateKey > bounds.last) {
     return;
   }
   viewKey = dateKey;
+  viewMode = "day";
+  render();
+}
+
+function selectMonth(monthKeyValue) {
+  if (!isMonthKey(monthKeyValue)) {
+    return;
+  }
+  viewMonth = monthKeyValue;
+  const bounds = monthBounds(viewMonth);
+  viewKey = todayKey >= bounds.first && todayKey <= bounds.last ? todayKey : bounds.first;
+  state = loadState();
+  render();
+}
+
+function goToToday() {
+  if (viewMonth !== todayMonth) {
+    viewMonth = todayMonth;
+    state = loadState();
+  }
+  viewKey = todayKey;
+  viewMode = "day";
+  render();
+}
+
+function selectFunnelMode(mode) {
+  viewMode = mode === "month" ? "month" : "day";
   render();
 }
 
@@ -276,6 +358,7 @@ function render() {
   const monthDone = getMonthDone();
   const dayRatio = Math.min(dayTotal / DAILY_GOAL, 1);
   const monthRatio = Math.min(monthDone / MONTH_GOAL, 1);
+  const bounds = monthBounds(viewMonth);
 
   todayCount.textContent = dayTotal;
   monthCount.textContent = monthDone;
@@ -284,15 +367,17 @@ function render() {
   todayPercent.textContent = `${Math.round((dayTotal / DAILY_GOAL) * 100)}%`;
   todayRing.style.strokeDashoffset = String(314 - 314 * dayRatio);
   monthProgressBar.style.width = `${monthRatio * 100}%`;
-  defaultMonthLabel.textContent = now.toLocaleDateString("ru-RU", { month: "long", year: "numeric" });
+  defaultMonthLabel.textContent = formatMonth(viewMonth);
 
   heroDayLabel.textContent = viewKey === todayKey ? "Сегодня" : formatLong(viewKey);
   datePicker.value = viewKey;
-  datePicker.min = monthFirstKey;
-  datePicker.max = monthLastKey;
+  datePicker.min = bounds.first;
+  datePicker.max = bounds.last;
   goTodayButton.classList.toggle("is-hidden", viewKey === todayKey);
-  prevDayButton.disabled = viewKey <= monthFirstKey;
-  nextDayButton.disabled = viewKey >= monthLastKey;
+  prevDayButton.disabled = viewKey <= bounds.first;
+  nextDayButton.disabled = viewKey >= bounds.last;
+
+  monthPicker.value = viewMonth;
 
   extraCount.textContent = dayExtra;
   if (dayExtra > 0) {
@@ -315,11 +400,30 @@ function render() {
 }
 
 function renderFunnel() {
-  const touches = getDayTotal(viewKey);
-  const replies = getDayFunnel(viewKey, "replies");
-  const tests = getDayFunnel(viewKey, "tests");
-  const works = getDayFunnel(viewKey, "works");
+  const isMonthMode = viewMode === "month";
+
+  let touches;
+  let replies;
+  let tests;
+  let works;
+
+  if (isMonthMode) {
+    touches = getMonthDone();
+    const aggregate = getMonthFunnel();
+    replies = aggregate.replies;
+    tests = aggregate.tests;
+    works = aggregate.works;
+  } else {
+    touches = getDayTotal(viewKey);
+    replies = getDayFunnel(viewKey, "replies");
+    tests = getDayFunnel(viewKey, "tests");
+    works = getDayFunnel(viewKey, "works");
+  }
+
   const pct = (part, base) => (base > 0 ? Math.round((part / base) * 100) : 0);
+
+  funnelModeDay.classList.toggle("is-active", !isMonthMode);
+  funnelModeMonth.classList.toggle("is-active", isMonthMode);
 
   funnelValues.touches.textContent = touches;
   funnelValues.replies.textContent = replies;
@@ -331,7 +435,7 @@ function renderFunnel() {
   funnelFills.tests.style.width = `${pct(tests, touches)}%`;
   funnelFills.works.style.width = `${pct(works, touches)}%`;
 
-  const label = viewLabel();
+  const label = isMonthMode ? formatMonth(viewMonth) : viewLabel();
   funnelMetas.touches.textContent = `${touches} · ${label}`;
   funnelMetas.replies.textContent = `${pct(replies, touches)}% от касаний`;
   funnelMetas.tests.textContent = `${pct(tests, replies)}% от ответов · ${pct(tests, touches)}% от касаний`;
@@ -342,12 +446,15 @@ function renderFunnel() {
   funnelPcts.tests.textContent = `${pct(tests, replies)}%`;
   funnelPcts.works.textContent = `${pct(works, tests)}%`;
 
-  const limits = { replies: touches, tests: replies, works: tests };
-
   funnelButtons.forEach((button) => {
+    if (isMonthMode) {
+      button.disabled = true;
+      return;
+    }
     const key = button.dataset.key;
     const delta = Number(button.dataset.delta);
     const value = getDayFunnel(viewKey, key);
+    const limits = { replies: touches, tests: replies, works: tests };
     button.disabled = delta < 0 ? value <= 0 : value >= limits[key];
   });
 }
@@ -382,7 +489,7 @@ function renderLog() {
     .reverse();
 
   if (days.length === 0) {
-    logBody.innerHTML = '<div class="log-row"><span>Пока пусто</span></div>';
+    logBody.innerHTML = '<div class="log-row"><span>В этом месяце пока пусто</span></div>';
     logTotals.style.display = "none";
     return;
   }
@@ -460,6 +567,18 @@ extraMinus.addEventListener("click", () => {
   setDayExtra(viewKey, getDayExtra(viewKey) - 1);
 });
 
+prevMonthButton.addEventListener("click", () => {
+  selectMonth(shiftMonth(viewMonth, -1));
+});
+
+nextMonthButton.addEventListener("click", () => {
+  selectMonth(shiftMonth(viewMonth, 1));
+});
+
+monthPicker.addEventListener("change", () => {
+  selectMonth(monthPicker.value);
+});
+
 prevDayButton.addEventListener("click", () => {
   selectDay(shiftDateKey(viewKey, -1));
 });
@@ -469,11 +588,19 @@ nextDayButton.addEventListener("click", () => {
 });
 
 goTodayButton.addEventListener("click", () => {
-  selectDay(todayKey);
+  goToToday();
 });
 
 datePicker.addEventListener("change", () => {
   selectDay(datePicker.value);
+});
+
+funnelModeDay.addEventListener("click", () => {
+  selectFunnelMode("day");
+});
+
+funnelModeMonth.addEventListener("click", () => {
+  selectFunnelMode("month");
 });
 
 funnelButtons.forEach((button) => {
@@ -483,7 +610,8 @@ funnelButtons.forEach((button) => {
 });
 
 resetMonthButton.addEventListener("click", () => {
-  const confirmed = window.confirm("Сбросить весь прогресс текущего месяца?");
+  const monthLabel = formatMonth(viewMonth);
+  const confirmed = window.confirm(`Очистить весь прогресс за ${monthLabel}?`);
 
   if (!confirmed) {
     return;
