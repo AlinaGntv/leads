@@ -12,9 +12,15 @@ const todayRing = document.querySelector("#todayRing");
 const todayPercent = document.querySelector("#todayPercent");
 const monthProgressBar = document.querySelector("#monthProgressBar");
 const defaultMonthLabel = document.querySelector("#defaultMonthLabel");
+const heroDayLabel = document.querySelector("#heroDayLabel");
 const resetTodayButton = document.querySelector("#resetTodayButton");
 const resetMonthButton = document.querySelector("#resetMonthButton");
 const fillTodayButton = document.querySelector("#fillTodayButton");
+
+const prevDayButton = document.querySelector("#prevDayButton");
+const nextDayButton = document.querySelector("#nextDayButton");
+const datePicker = document.querySelector("#datePicker");
+const goTodayButton = document.querySelector("#goTodayButton");
 
 const funnelFromTouches = document.querySelector("#funnelFromTouches");
 const funnelValues = {
@@ -54,8 +60,12 @@ const now = new Date();
 const todayKey = toDateKey(now);
 const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 const storageKey = `${STORAGE_PREFIX}:${monthKey}`;
+const monthFirstKey = `${monthKey}-01`;
+const monthLastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+const monthLastKey = `${monthKey}-${String(monthLastDay).padStart(2, "0")}`;
 const EMPTY_FUNNEL_DAY = { replies: 0, tests: 0, works: 0 };
 
+let viewKey = todayKey;
 let state = loadState();
 
 function toDateKey(date) {
@@ -66,8 +76,34 @@ function toDateKey(date) {
   ].join("-");
 }
 
+function fromDateKey(dateKey) {
+  return new Date(`${dateKey}T12:00:00`);
+}
+
+function shiftDateKey(dateKey, deltaDays) {
+  const date = fromDateKey(dateKey);
+  date.setDate(date.getDate() + deltaDays);
+  return toDateKey(date);
+}
+
 function isDateKey(value) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function formatShort(dateKey) {
+  const [, month, dayOfMonth] = dateKey.split("-");
+  return `${dayOfMonth}.${month}`;
+}
+
+function formatLong(dateKey) {
+  return fromDateKey(dateKey).toLocaleDateString("ru-RU", {
+    day: "numeric",
+    month: "long",
+  });
+}
+
+function viewLabel() {
+  return viewKey === todayKey ? "Сегодня" : formatShort(viewKey);
 }
 
 function normalizeFunnel(funnel) {
@@ -114,36 +150,36 @@ function saveState() {
   localStorage.setItem(storageKey, JSON.stringify(state));
 }
 
-function getTodayDone() {
-  return state.days[todayKey] || 0;
+function getDayDone(dateKey) {
+  return state.days[dateKey] || 0;
 }
 
-function getTodayExtra() {
-  return state.extra ? Number(state.extra[todayKey] || 0) : 0;
+function getDayExtra(dateKey) {
+  return state.extra ? Number(state.extra[dateKey] || 0) : 0;
 }
 
-function getTodayTotal() {
-  return getTodayDone() + getTodayExtra();
+function getDayTotal(dateKey) {
+  return getDayDone(dateKey) + getDayExtra(dateKey);
 }
 
-function setTodayDone(value) {
-  state.days[todayKey] = Math.max(0, Math.min(DAILY_GOAL, value));
+function setDayDone(dateKey, value) {
+  state.days[dateKey] = Math.max(0, Math.min(DAILY_GOAL, value));
   saveState();
   render();
 }
 
-function setTodayExtra(value) {
+function setDayExtra(dateKey, value) {
   state.extra = state.extra || {};
-  state.extra[todayKey] = Math.max(0, value);
+  state.extra[dateKey] = Math.max(0, value);
   saveState();
   render();
 }
 
-function clearToday() {
-  state.days[todayKey] = 0;
+function clearDay(dateKey) {
+  state.days[dateKey] = 0;
   state.extra = state.extra || {};
-  state.extra[todayKey] = 0;
-  state.funnel[todayKey] = { ...EMPTY_FUNNEL_DAY };
+  state.extra[dateKey] = 0;
+  state.funnel[dateKey] = { ...EMPTY_FUNNEL_DAY };
   saveState();
   render();
 }
@@ -155,32 +191,39 @@ function getMonthDone() {
   }, 0);
 }
 
-function getFunnelValue(key) {
-  const today = state.funnel ? state.funnel[todayKey] : null;
-  return today ? Number(today[key] || 0) : 0;
+function getDayFunnel(dateKey, key) {
+  const day = state.funnel ? state.funnel[dateKey] : null;
+  return day ? Number(day[key] || 0) : 0;
 }
 
 function setFunnelValue(key, delta) {
-  const today = state.funnel[todayKey] || { ...EMPTY_FUNNEL_DAY };
-  state.funnel[todayKey] = today;
+  const day = state.funnel[viewKey] || { ...EMPTY_FUNNEL_DAY };
+  state.funnel[viewKey] = day;
 
-  const touches = getTodayTotal();
+  const touches = getDayTotal(viewKey);
   const limits = {
     replies: touches,
-    tests: today.replies,
-    works: today.tests,
+    tests: day.replies,
+    works: day.tests,
   };
-  const next = Math.max(0, Math.min(limits[key], Number(today[key] || 0) + delta));
-  today[key] = next;
+  const next = Math.max(0, Math.min(limits[key], Number(day[key] || 0) + delta));
+  day[key] = next;
   saveState();
+  render();
+}
+
+function selectDay(dateKey) {
+  if (!isDateKey(dateKey) || dateKey < monthFirstKey || dateKey > monthLastKey) {
+    return;
+  }
+  viewKey = dateKey;
   render();
 }
 
 function getWeekdayAverage() {
   const values = Object.entries(state.days)
     .filter(([dateKey]) => {
-      const date = new Date(`${dateKey}T12:00:00`);
-      const day = date.getDay();
+      const day = fromDateKey(dateKey).getDay();
       return day !== 0 && day !== 6;
     })
     .map(([dateKey, value]) => {
@@ -223,36 +266,44 @@ function createMonthDots() {
 }
 
 function toggleDailyDot(position) {
-  const current = getTodayDone();
-  setTodayDone(position <= current ? position - 1 : position);
+  const current = getDayDone(viewKey);
+  setDayDone(viewKey, position <= current ? position - 1 : position);
 }
 
 function render() {
-  const todayTotal = getTodayTotal();
-  const todayExtra = getTodayExtra();
+  const dayTotal = getDayTotal(viewKey);
+  const dayExtra = getDayExtra(viewKey);
   const monthDone = getMonthDone();
-  const todayRatio = Math.min(todayTotal / DAILY_GOAL, 1);
+  const dayRatio = Math.min(dayTotal / DAILY_GOAL, 1);
   const monthRatio = Math.min(monthDone / MONTH_GOAL, 1);
 
-  todayCount.textContent = todayTotal;
+  todayCount.textContent = dayTotal;
   monthCount.textContent = monthDone;
   monthLeft.textContent = Math.max(MONTH_GOAL - monthDone, 0);
   weekdayAverage.textContent = getWeekdayAverage();
-  todayPercent.textContent = `${Math.round((todayTotal / DAILY_GOAL) * 100)}%`;
-  todayRing.style.strokeDashoffset = String(314 - 314 * todayRatio);
+  todayPercent.textContent = `${Math.round((dayTotal / DAILY_GOAL) * 100)}%`;
+  todayRing.style.strokeDashoffset = String(314 - 314 * dayRatio);
   monthProgressBar.style.width = `${monthRatio * 100}%`;
   defaultMonthLabel.textContent = now.toLocaleDateString("ru-RU", { month: "long", year: "numeric" });
 
-  extraCount.textContent = todayExtra;
-  if (todayExtra > 0) {
-    todayExtraChip.textContent = `+${todayExtra} сверх нормы`;
+  heroDayLabel.textContent = viewKey === todayKey ? "Сегодня" : formatLong(viewKey);
+  datePicker.value = viewKey;
+  datePicker.min = monthFirstKey;
+  datePicker.max = monthLastKey;
+  goTodayButton.classList.toggle("is-hidden", viewKey === todayKey);
+  prevDayButton.disabled = viewKey <= monthFirstKey;
+  nextDayButton.disabled = viewKey >= monthLastKey;
+
+  extraCount.textContent = dayExtra;
+  if (dayExtra > 0) {
+    todayExtraChip.textContent = `+${dayExtra} сверх нормы`;
     todayExtraChip.classList.remove("is-hidden");
   } else {
     todayExtraChip.classList.add("is-hidden");
   }
 
   [...dailyGrid.children].forEach((dot, index) => {
-    dot.classList.toggle("is-done", index < getTodayDone());
+    dot.classList.toggle("is-done", index < getDayDone(viewKey));
   });
 
   [...monthGrid.children].forEach((dot, index) => {
@@ -264,10 +315,10 @@ function render() {
 }
 
 function renderFunnel() {
-  const touches = getTodayTotal();
-  const replies = getFunnelValue("replies");
-  const tests = getFunnelValue("tests");
-  const works = getFunnelValue("works");
+  const touches = getDayTotal(viewKey);
+  const replies = getDayFunnel(viewKey, "replies");
+  const tests = getDayFunnel(viewKey, "tests");
+  const works = getDayFunnel(viewKey, "works");
   const pct = (part, base) => (base > 0 ? Math.round((part / base) * 100) : 0);
 
   funnelValues.touches.textContent = touches;
@@ -280,7 +331,8 @@ function renderFunnel() {
   funnelFills.tests.style.width = `${pct(tests, touches)}%`;
   funnelFills.works.style.width = `${pct(works, touches)}%`;
 
-  funnelMetas.touches.textContent = `${touches} сегодня`;
+  const label = viewLabel();
+  funnelMetas.touches.textContent = `${touches} · ${label}`;
   funnelMetas.replies.textContent = `${pct(replies, touches)}% от касаний`;
   funnelMetas.tests.textContent = `${pct(tests, replies)}% от ответов · ${pct(tests, touches)}% от касаний`;
   funnelMetas.works.textContent = `${pct(works, tests)}% от тестовых · ${pct(works, touches)}% от касаний`;
@@ -295,7 +347,7 @@ function renderFunnel() {
   funnelButtons.forEach((button) => {
     const key = button.dataset.key;
     const delta = Number(button.dataset.delta);
-    const value = getFunnelValue(key);
+    const value = getDayFunnel(viewKey, key);
     button.disabled = delta < 0 ? value <= 0 : value >= limits[key];
   });
 }
@@ -329,11 +381,6 @@ function renderLog() {
     .sort()
     .reverse();
 
-  const formatDay = (key) => {
-    const [year, month, dayOfMonth] = key.split("-");
-    return `${dayOfMonth}.${month}`;
-  };
-
   if (days.length === 0) {
     logBody.innerHTML = '<div class="log-row"><span>Пока пусто</span></div>';
     logTotals.style.display = "none";
@@ -347,9 +394,10 @@ function renderLog() {
       const data = getDayData(key);
       const touchesLabel = data.extra > 0 ? `${data.touches - data.extra}+${data.extra}` : String(data.touches);
       const isToday = key === todayKey ? " is-today" : "";
+      const isActive = key === viewKey ? " is-active" : "";
       return (
-        `<div class="log-row${isToday}">` +
-        `<span>${key === todayKey ? "Сегодня" : formatDay(key)}</span>` +
+        `<div class="log-row${isToday}${isActive}" data-day="${key}" role="button" tabindex="0">` +
+        `<span>${key === todayKey ? "Сегодня" : formatShort(key)}</span>` +
         `<span>${touchesLabel}</span>` +
         `<span>${data.replies}</span>` +
         `<span>${data.tests}</span>` +
@@ -380,20 +428,52 @@ function renderLog() {
   );
 }
 
+function handleLogClick(event) {
+  const row = event.target.closest("[data-day]");
+  if (row) {
+    selectDay(row.dataset.day);
+  }
+}
+
+function handleLogKeydown(event) {
+  if (event.key === "Enter" || event.key === " ") {
+    handleLogClick(event);
+  }
+}
+
+logBody.addEventListener("click", handleLogClick);
+logBody.addEventListener("keydown", handleLogKeydown);
+
 resetTodayButton.addEventListener("click", () => {
-  clearToday();
+  clearDay(viewKey);
 });
 
 fillTodayButton.addEventListener("click", () => {
-  setTodayDone(DAILY_GOAL);
+  setDayDone(viewKey, DAILY_GOAL);
 });
 
 extraPlus.addEventListener("click", () => {
-  setTodayExtra(getTodayExtra() + 1);
+  setDayExtra(viewKey, getDayExtra(viewKey) + 1);
 });
 
 extraMinus.addEventListener("click", () => {
-  setTodayExtra(getTodayExtra() - 1);
+  setDayExtra(viewKey, getDayExtra(viewKey) - 1);
+});
+
+prevDayButton.addEventListener("click", () => {
+  selectDay(shiftDateKey(viewKey, -1));
+});
+
+nextDayButton.addEventListener("click", () => {
+  selectDay(shiftDateKey(viewKey, 1));
+});
+
+goTodayButton.addEventListener("click", () => {
+  selectDay(todayKey);
+});
+
+datePicker.addEventListener("change", () => {
+  selectDay(datePicker.value);
 });
 
 funnelButtons.forEach((button) => {

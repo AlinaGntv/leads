@@ -50,6 +50,36 @@ button {
   flex-wrap: wrap;
 }
 
+.day-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 22px;
+  padding: 10px 12px;
+}
+
+.day-nav-center {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.day-nav input[type="date"] {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 6px 10px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  background: rgba(255, 253, 250, 0.6);
+}
+
+.day-nav input[type="date"]:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
 .is-hidden {
   display: none;
 }
@@ -356,10 +386,16 @@ h2 {
   grid-template-columns: minmax(72px, 1.3fr) repeat(4, 1fr);
   gap: 8px;
   align-items: center;
-  padding: 8px 0;
+  padding: 8px 12px;
   border-bottom: 1px solid var(--line);
   font-size: 14px;
   font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: background 120ms ease;
+}
+
+.log-row:hover {
+  background: rgba(255, 253, 250, 0.7);
 }
 
 .log-head {
@@ -374,6 +410,10 @@ h2 {
 .log-row.is-today {
   color: var(--accent);
   font-weight: 600;
+}
+
+.log-row.is-active {
+  box-shadow: inset 3px 0 0 var(--accent);
 }
 
 .log-total {
