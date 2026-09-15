@@ -347,6 +347,43 @@ h2 {
   font-size: 13px;
 }
 
+.log-table {
+  margin-top: 16px;
+}
+
+.log-row {
+  display: grid;
+  grid-template-columns: minmax(72px, 1.3fr) repeat(4, 1fr);
+  gap: 8px;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.log-head {
+  padding: 6px 0;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.log-row.is-today {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.log-total {
+  border-bottom: none;
+  margin-top: 2px;
+  padding-top: 10px;
+  border-top: 1px solid var(--ink);
+  font-weight: 700;
+}
+
 .daily-grid,
 .month-grid {
   display: grid;

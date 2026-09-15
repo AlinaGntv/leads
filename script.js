@@ -47,11 +47,14 @@ const extraMinus = document.querySelector("#extraMinus");
 const extraCount = document.querySelector("#extraCount");
 const todayExtraChip = document.querySelector("#todayExtraChip");
 
+const logBody = document.querySelector("#logBody");
+const logTotals = document.querySelector("#logTotals");
+
 const now = new Date();
 const todayKey = toDateKey(now);
 const monthKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 const storageKey = `${STORAGE_PREFIX}:${monthKey}`;
-const EMPTY_FUNNEL = { replies: 0, tests: 0, works: 0 };
+const EMPTY_FUNNEL_DAY = { replies: 0, tests: 0, works: 0 };
 
 let state = loadState();
 
@@ -63,25 +66,47 @@ function toDateKey(date) {
   ].join("-");
 }
 
+function isDateKey(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function normalizeFunnel(funnel) {
+  if (!funnel) {
+    return {};
+  }
+
+  const isPerDay = Object.keys(funnel).some(isDateKey);
+  if (isPerDay) {
+    const normalized = {};
+    Object.entries(funnel).forEach(([key, value]) => {
+      const day = value && typeof value === "object" ? value : {};
+      normalized[key] = { ...EMPTY_FUNNEL_DAY, ...day };
+    });
+    return normalized;
+  }
+
+  return { [todayKey]: { ...EMPTY_FUNNEL_DAY, ...funnel } };
+}
+
 function loadState() {
   const raw = localStorage.getItem(storageKey);
 
   if (!raw) {
-    return { days: {}, extra: {}, funnel: { ...EMPTY_FUNNEL } };
+    return { days: {}, extra: {}, funnel: {} };
   }
 
   try {
     const parsed = JSON.parse(raw);
     if (!parsed || !parsed.days) {
-      return { days: {}, extra: {}, funnel: { ...EMPTY_FUNNEL } };
+      return { days: {}, extra: {}, funnel: {} };
     }
     return {
       days: parsed.days,
       extra: parsed.extra || {},
-      funnel: { ...EMPTY_FUNNEL, ...(parsed.funnel || {}) },
+      funnel: normalizeFunnel(parsed.funnel),
     };
   } catch {
-    return { days: {}, extra: {}, funnel: { ...EMPTY_FUNNEL } };
+    return { days: {}, extra: {}, funnel: {} };
   }
 }
 
@@ -118,6 +143,7 @@ function clearToday() {
   state.days[todayKey] = 0;
   state.extra = state.extra || {};
   state.extra[todayKey] = 0;
+  state.funnel[todayKey] = { ...EMPTY_FUNNEL_DAY };
   saveState();
   render();
 }
@@ -130,18 +156,22 @@ function getMonthDone() {
 }
 
 function getFunnelValue(key) {
-  return Number(state.funnel[key] || 0);
+  const today = state.funnel ? state.funnel[todayKey] : null;
+  return today ? Number(today[key] || 0) : 0;
 }
 
 function setFunnelValue(key, delta) {
-  const touches = getMonthDone();
+  const today = state.funnel[todayKey] || { ...EMPTY_FUNNEL_DAY };
+  state.funnel[todayKey] = today;
+
+  const touches = getTodayTotal();
   const limits = {
     replies: touches,
-    tests: getFunnelValue("replies"),
-    works: getFunnelValue("tests"),
+    tests: today.replies,
+    works: today.tests,
   };
-  const next = Math.max(0, Math.min(limits[key], getFunnelValue(key) + delta));
-  state.funnel[key] = next;
+  const next = Math.max(0, Math.min(limits[key], Number(today[key] || 0) + delta));
+  today[key] = next;
   saveState();
   render();
 }
@@ -230,10 +260,11 @@ function render() {
   });
 
   renderFunnel();
+  renderLog();
 }
 
 function renderFunnel() {
-  const touches = getMonthDone();
+  const touches = getTodayTotal();
   const replies = getFunnelValue("replies");
   const tests = getFunnelValue("tests");
   const works = getFunnelValue("works");
@@ -249,7 +280,7 @@ function renderFunnel() {
   funnelFills.tests.style.width = `${pct(tests, touches)}%`;
   funnelFills.works.style.width = `${pct(works, touches)}%`;
 
-  funnelMetas.touches.textContent = `${touches} из ${MONTH_GOAL} за месяц`;
+  funnelMetas.touches.textContent = `${touches} сегодня`;
   funnelMetas.replies.textContent = `${pct(replies, touches)}% от касаний`;
   funnelMetas.tests.textContent = `${pct(tests, replies)}% от ответов · ${pct(tests, touches)}% от касаний`;
   funnelMetas.works.textContent = `${pct(works, tests)}% от тестовых · ${pct(works, touches)}% от касаний`;
@@ -267,6 +298,86 @@ function renderFunnel() {
     const value = getFunnelValue(key);
     button.disabled = delta < 0 ? value <= 0 : value >= limits[key];
   });
+}
+
+function getDayData(dateKey) {
+  const norm = Number(state.days[dateKey] || 0);
+  const extra = state.extra ? Number(state.extra[dateKey] || 0) : 0;
+  const day = state.funnel ? state.funnel[dateKey] : null;
+
+  return {
+    touches: norm + extra,
+    extra,
+    replies: day ? Number(day.replies || 0) : 0,
+    tests: day ? Number(day.tests || 0) : 0,
+    works: day ? Number(day.works || 0) : 0,
+  };
+}
+
+function renderLog() {
+  const keys = new Set([
+    ...Object.keys(state.days),
+    ...Object.keys(state.extra || {}),
+    ...Object.keys(state.funnel || {}),
+  ]);
+
+  const days = [...keys]
+    .filter((key) => {
+      const data = getDayData(key);
+      return data.touches > 0 || data.replies > 0 || data.tests > 0 || data.works > 0;
+    })
+    .sort()
+    .reverse();
+
+  const formatDay = (key) => {
+    const [year, month, dayOfMonth] = key.split("-");
+    return `${dayOfMonth}.${month}`;
+  };
+
+  if (days.length === 0) {
+    logBody.innerHTML = '<div class="log-row"><span>Пока пусто</span></div>';
+    logTotals.style.display = "none";
+    return;
+  }
+
+  logTotals.style.display = "";
+
+  logBody.innerHTML = days
+    .map((key) => {
+      const data = getDayData(key);
+      const touchesLabel = data.extra > 0 ? `${data.touches - data.extra}+${data.extra}` : String(data.touches);
+      const isToday = key === todayKey ? " is-today" : "";
+      return (
+        `<div class="log-row${isToday}">` +
+        `<span>${key === todayKey ? "Сегодня" : formatDay(key)}</span>` +
+        `<span>${touchesLabel}</span>` +
+        `<span>${data.replies}</span>` +
+        `<span>${data.tests}</span>` +
+        `<span>${data.works}</span>` +
+        `</div>`
+      );
+    })
+    .join("");
+
+  const totals = days.reduce(
+    (acc, key) => {
+      const data = getDayData(key);
+      acc.touches += data.touches;
+      acc.replies += data.replies;
+      acc.tests += data.tests;
+      acc.works += data.works;
+      return acc;
+    },
+    { touches: 0, replies: 0, tests: 0, works: 0 },
+  );
+
+  logTotals.innerHTML = (
+    `<span>Итого</span>` +
+    `<span>${totals.touches}</span>` +
+    `<span>${totals.replies}</span>` +
+    `<span>${totals.tests}</span>` +
+    `<span>${totals.works}</span>`
+  );
 }
 
 resetTodayButton.addEventListener("click", () => {
@@ -298,7 +409,7 @@ resetMonthButton.addEventListener("click", () => {
     return;
   }
 
-  state = { days: {}, extra: {}, funnel: { ...EMPTY_FUNNEL } };
+  state = { days: {}, extra: {}, funnel: {} };
   saveState();
   render();
 });

@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Лиды</title>
-    <link rel="stylesheet" href="styles.css?v=10" />
+    <link rel="stylesheet" href="styles.css?v=11" />
   </head>
   <body>
     <main class="app">
@@ -141,8 +141,25 @@
           </article>
         </div>
       </section>
+
+      <section class="panel" aria-label="Лог по дням">
+        <div class="section-title">
+          <h2>Лог по дням</h2>
+        </div>
+        <div class="log-table">
+          <div class="log-row log-head">
+            <span>Дата</span>
+            <span>Касания</span>
+            <span>Ответы</span>
+            <span>Тестовые</span>
+            <span>Работа</span>
+          </div>
+          <div id="logBody"></div>
+          <div class="log-row log-total" id="logTotals"></div>
+        </div>
+      </section>
     </main>
 
-    <script src="script.js?v=10"></script>
+    <script src="script.js?v=11"></script>
   </body>
 </html>
