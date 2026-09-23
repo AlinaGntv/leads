@@ -254,14 +254,7 @@ function setFunnelValue(key, delta) {
   const day = state.funnel[viewKey] || { ...EMPTY_FUNNEL_DAY };
   state.funnel[viewKey] = day;
 
-  const touches = getDayTotal(viewKey);
-  const limits = {
-    replies: touches,
-    tests: day.replies,
-    works: day.tests,
-  };
-  const next = Math.max(0, Math.min(limits[key], Number(day[key] || 0) + delta));
-  day[key] = next;
+  day[key] = Math.max(0, Number(day[key] || 0) + delta);
   saveState();
   render();
 }
@@ -447,15 +440,14 @@ function renderFunnel() {
   funnelPcts.works.textContent = `${pct(works, tests)}%`;
 
   funnelButtons.forEach((button) => {
+    const key = button.dataset.key;
+    const delta = Number(button.dataset.delta);
+    const value = getDayFunnel(viewKey, key);
     if (isMonthMode) {
       button.disabled = true;
       return;
     }
-    const key = button.dataset.key;
-    const delta = Number(button.dataset.delta);
-    const value = getDayFunnel(viewKey, key);
-    const limits = { replies: touches, tests: replies, works: tests };
-    button.disabled = delta < 0 ? value <= 0 : value >= limits[key];
+    button.disabled = delta < 0 ? value <= 0 : false;
   });
 }
 
