@@ -443,10 +443,6 @@ function renderFunnel() {
     const key = button.dataset.key;
     const delta = Number(button.dataset.delta);
     const value = getDayFunnel(viewKey, key);
-    if (isMonthMode) {
-      button.disabled = true;
-      return;
-    }
     button.disabled = delta < 0 ? value <= 0 : false;
   });
 }
